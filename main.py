@@ -132,21 +132,28 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer.model_max_length = model.config.max_position_embeddings
 
 # Préparer les inputs
-prompt = """You are a helpful assistant with a lot of knowledge about the automotive industry. Please answer in 50 words about the specificities of the Citroen C3. Here is your answer:"""
+prompt = (
+    "You are a helpful assistant with a lot of knowledge about the automotive industry. "
+    "You must answer about the automotive industry, not something else. "
+    "Do not provide information about unrelated topics, such as journalism. "
+    "Do not answer in the form of an article nor a diary. "
+    "Please answer in 50 words about the specificities of the Citroen C3."
+    "Give information about the car, the engine, available variants, prices, and more."
+)
 
 inputs = tokenizer(prompt, return_tensors="pt", padding=True).to("cuda:0")
 
 # Initialiser la barre de progression
-max_new_tokens = 2500
+max_new_tokens = 1000
 progress_bar = tqdm(total=max_new_tokens, desc="Generating Text", unit="token")
 
 # Générer la sortie avec des paramètres ajustés
-batch_size = 5  # Ajuster le batch_size pour générer plusieurs tokens à la fois
+batch_size = 50  # Ajuster le batch_size pour générer plusieurs tokens à la fois
 
 generated_tokens = inputs['input_ids']
 attention_mask = inputs['attention_mask']
 
-for _ in range(0, max_new_tokens, batch_size):
+for step in range(0, max_new_tokens, batch_size):
     try:
       outputs = model.generate(
           input_ids=generated_tokens,
@@ -169,6 +176,11 @@ for _ in range(0, max_new_tokens, batch_size):
       
       # Mettre à jour la barre de progression
       progress_bar.update(new_tokens.shape[1])
+
+      if step%1000 == 0:
+        # Libérer la mémoire GPU
+        torch.cuda.empty_cache()
+
     except RuntimeError as e:
        print(f"Error during generation: {e}")
 
