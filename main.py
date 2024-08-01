@@ -105,8 +105,8 @@ import torch
 start = perf_counter()
 
 # Chemin vers le tokenizer et le modèle
-tokenizer_path = "mistral/"
-model_path = "mistral/"
+tokenizer_path = "codestral/"
+model_path = "codestral/"
 
 # Charger le tokenizer et le modèle
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True, padding_side="left", truncation=True)
@@ -133,22 +133,24 @@ tokenizer.model_max_length = model.config.max_position_embeddings
 
 # Préparer les inputs
 prompt = (
-    "You are a helpful assistant with a lot of knowledge about the automotive industry. "
-    "You must answer about the automotive industry, not something else. "
-    "Do not provide information about unrelated topics, such as journalism. "
-    "Do not answer in the form of an article nor a diary. "
-    "Please answer in 50 words about the specificities of the Citroen C3."
-    "Give information about the car, the engine, available variants, prices, and more."
+"""
+You are a professsional programmer that can write code in any language.
+You must answer to any request concerning programming to help the user.
+Please write some Java code to create a small tic tac toe game.
+Do not forget to comment your code.
+Also, notify the user when you are done with the code.
+"""
+
 )
 
 inputs = tokenizer(prompt, return_tensors="pt", padding=True).to("cuda:0")
 
 # Initialiser la barre de progression
-max_new_tokens = 1000
+max_new_tokens = 5000
 progress_bar = tqdm(total=max_new_tokens, desc="Generating Text", unit="token")
 
 # Générer la sortie avec des paramètres ajustés
-batch_size = 50  # Ajuster le batch_size pour générer plusieurs tokens à la fois
+batch_size = 100  # Ajuster le batch_size pour générer plusieurs tokens à la fois
 
 generated_tokens = inputs['input_ids']
 attention_mask = inputs['attention_mask']
@@ -195,3 +197,6 @@ print(f"\nTime taken = {stop-start}")
 
 # Libérer la mémoire GPU
 torch.cuda.empty_cache()
+
+with open('generated-text.txt', "w") as f:
+   f.write(generated_text)
