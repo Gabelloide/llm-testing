@@ -44,7 +44,7 @@ def initialize_model():
         print(f"Error loading model or tokenizer: {e}")
 
 # Fonction pour générer du texte
-def generate_text(prompt, progress=gr.Progress()):
+def generate_text(prompt, max_new_tokens, progress=gr.Progress()):
     global tokenizer, model
     
     start = perf_counter()
@@ -58,7 +58,7 @@ def generate_text(prompt, progress=gr.Progress()):
 
     base_prompt_end = (
       "Do not forget to comment your code."
-      "Also, notify the user when you are done with the code" 
+      "Also, notify the user when you are done with the code."
       "Always end your answer with 'Anything else?'. This is extremely important and you must respect this rule."
     )
 
@@ -69,8 +69,8 @@ def generate_text(prompt, progress=gr.Progress()):
     inputs = tokenizer(prompt, return_tensors="pt", padding=True).to("cuda:0")
     
     # Initialiser la barre de progression
-    max_new_tokens = 250
     progress(0, desc="Generating...")
+    
     # Générer la sortie avec des paramètres ajustés
     batch_size = 50
     generated_tokens = inputs['input_ids']
@@ -98,8 +98,6 @@ def generate_text(prompt, progress=gr.Progress()):
             # Mettre à jour l'attention_mask
             attention_mask = torch.cat((attention_mask, torch.ones((attention_mask.shape[0], new_tokens.shape[1]), device=attention_mask.device)), dim=1)
             
-            # Mettre à jour la barre de progression
-            
             if step % 1000 == 0:
                 # Libérer la mémoire GPU
                 torch.cuda.empty_cache()
@@ -107,23 +105,24 @@ def generate_text(prompt, progress=gr.Progress()):
         except RuntimeError as e:
             print(f"Error during generation: {e}")
     
-    
     # Décoder et retourner le texte généré
     generated_text = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
     generated_no_prompt = generated_text.replace(prompt, "")
     
     stop = perf_counter()
-    print(f"\nTime taken = {stop-start}")
-
     torch.cuda.empty_cache()
     
     print(generated_no_prompt)
+    print(f"\n *** Time taken = {stop - start:.3f} seconds ***")
     return generated_no_prompt
 
 # Interface Gradio
 iface = gr.Interface(
     fn=generate_text,
-    inputs=gr.Textbox(lines=20, label="Enter prompt here"),
+    inputs=[
+        gr.Textbox(lines=20, label="Enter prompt here"),
+        gr.Slider(100, 5000, step=50, value=250, label="Answer size")
+    ],
     outputs=gr.Markdown(label="Generated Text"),
     title="AI Text Generation",
     description="Generate text based on the provided prompt.",
